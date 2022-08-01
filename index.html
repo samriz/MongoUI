@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <style>
+            .input-group{vertical-align: top;}
+            input[type="radio"]{width: 140px;}
+            .requiredMessage
+            {
+                font-size:0.8em;
+                color:red;                
+            }
+            input[type="text"]{width:225px;}
+            h1{text-align: center;}
+        </style>
+        <!-- Bootstrap CSS below -->
+        <!-- CSS only -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>        
+    </head>
+    
+    <body style="padding-left: 10px;padding-top: 10px;">
+        <table>
+            <tr>
+                <td>
+                    <button type="button" onclick="$('#tblView').hide();$('#tblAdd').show();">Add</button>
+                </td>
+                <td>
+                    <button type="button" onclick="$('#tblAdd').hide();$('#tblView').show();">View</button>
+                </td>
+            </tr>
+        </table>
+        <table id="tblAdd">
+            <tr>                    
+                <td class="input-group">
+                    <span class="input-group-text">Host</span>                    
+                    <input type="text" id="inputHostAdd" class="form-control" value="localhost:27017" autocomplete="on" style="width: 225px">                    
+                </td>     
+            </tr>
+            <tr>
+                <td id="inputHostAddError" class="input-group" hidden>
+                    <span class="requiredMessage">This field is required.</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="input-group">
+                    <span class="input-group-text">DB</span>                    
+                    <input type="text" id="inputDBAdd" class="form-control" value="sameer" autocomplete="on" style="width: 225px">
+                </td>  
+            </tr>
+            <tr>
+                <td id="inputDBAddError" class="input-group" hidden>
+                    <span class="requiredMessage">This field is required.</span>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <p>Add to existing collection or create a new one?</p>
+                    <label for="existing">Existing</label>
+                    <input type="radio" id="existing" name="collections" value="Existing" onclick="$('#rowNewCollection').hide();$('#rowExistingCollections').show();fetchCollectionNames();">
+                    &nbsp;
+                    <label for="new">New</label>
+                    <input type="radio" id="new" name="collections" value="New" onclick="$('#rowExistingCollections').hide();$('#rowNewCollection').show();">
+                </td>
+            </tr>
+            <tr id="rowExistingCollections" style="display:none;">
+                <td>
+                    <span class="input-group-text">Existing Collections</span>
+                    <select id="collectionsSelect">
+                        <option value="0" style="display:none"> - Select a Collection - </option>
+                    </select>
+                </td>
+            </tr>
+            <tr id="rowNewCollection" style="display:none;">
+                <td class="input-group">
+                    <span class="input-group-text">New Collection</span>                    
+                    <input type="text" id="inputNewCollectionName" class="form-control" autocomplete="on" value="employment_history" style="width: 225px">
+                </td>  
+            </tr>
+            <tr>
+                <td id="inputNewCollectionNameError" class="input-group" hidden>
+                    <span class="requiredMessage">This field is required.</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="input-group">
+                    <button type="button" id="enterButton" class="btn btn-dark">Enter</button>
+                </td>
+            </tr>
+        </table>
+        <table id="tblView">
+            <tr>
+                <td class="input-group">
+                    <table>
+                        <tr>                    
+                            <td class="input-group">
+                                <span class="input-group-text">Host</span>                    
+                                <input type="text" id="inputHostView" class="form-control" autocomplete="on" value="localhost:27017" style="width: 225px">                    
+                            </td>     
+                        </tr>
+                        <tr>
+                            <td id="inputHostViewError" class="input-group" hidden>
+                                <span class="requiredMessage">This field is required.</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="input-group">
+                                <span class="input-group-text">DB</span>                    
+                                <input type="text" id="inputDBView" class="form-control" autocomplete="on" value="sameer" style="width: 225px">
+                            </td>  
+                        </tr>
+                        <tr>
+                            <td id="inputDBViewError" class="input-group" hidden>
+                                <span class="requiredMessage">This field is required.</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="input-group">
+                                <button type="button" id="connectButton" class="btn btn-dark">Connect</button>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="input-group">
+                    <td>                        
+                        <textarea id="collectionsTextArea" class="form-control" rows="12" cols="100" readonly></textarea>
+                    </td>
+                </td>
+            </tr>
+        </table>   
+
+    <script>
+        
+        $(document).ready(() => {
+            $("#tblAdd").hide();
+            $("#tblView").hide();
+        });
+
+        function getCollectionInfo()
+        {
+            let hostString = document.getElementById("inputHostView").value;
+            let inputHostError = document.getElementById("inputHostViewError");
+            let dbNameString = document.getElementById("inputDBView").value;
+            let inputDBViewError = document.getElementById("inputDBViewError");
+            let valid = false;
+
+            if(validateFields(hostString, inputHostError) && validateFields(dbNameString, inputDBViewError))
+            {
+                hostString = "mongodb://" + hostString;
+                $.ajax({
+                    method: "POST",
+                    url: "http://localhost:8080/MongoCollections",
+                    data: JSON.stringify({host: hostString, db: dbNameString}),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function(response) //response is a javascript object
+                    {
+                        if(response != undefined || response != null)
+                        {      
+                            for(let i = 0; i < response.length; i++)
+                            {
+                                collectionsTextArea.value += "Employer: " + response[i].company + "\r\n" + "Title: " + response[i].title;
+                            }                                         
+                            valid = true;
+                        }
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) { console.log("Error- Status: " + textStatus + "<br />jqXHR Status: " + jqXHR.status + "<br />jqXHR Response Text:" + jqXHR.responseText); }
+                });
+            }
+            return valid;
+        }
+
+        function fetchCollectionNames()
+        {
+            let host = "mongodb://" + document.getElementById("inputHostAdd").value;
+            let db = document.getElementById("inputDBAdd").value;
+            console.log("in fetchCollectionNames()");
+            $.ajax({
+                method: "POST",
+                url: "http://localhost:8080/allCollectionNames",
+                data: JSON.stringify({host: host, db: db}),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function(response)
+                {
+                    console.log("ajax success");
+                    console.log(`response: ${response}`);
+                    if(response != undefined || response != null)
+                    {
+                        for(let i = 0; i < response.length; i++)
+                        {
+                            console.log(`response[i]: ${response[i]}`);
+                            let option = new Option(response[i], (i+1).toString());
+                            document.getElementById("collectionsSelect").appendChild(option);
+                        }
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) { console.log("Error- Status: " + textStatus + "<br />jqXHR Status: " + jqXHR.status + "<br />jqXHR Response Text:" + jqXHR.responseText); }
+            });
+        }
+        /* async function fetchCollectionNames()
+        {
+            let host = "mongodb://" + document.getElementById("inputHostAdd").value;
+            let db = document.getElementById("inputDBAdd").value;
+
+            const response = await fetch("http://localhost:8080/allCollectionNames", {
+                method: 'POST',
+                body: JSON.stringify({host: host, db: db})
+            });
+            const responseJSON = response.json();
+            for(let i = 1; i < responseJSON.length - 1; i++)
+            {
+                let option = new Option(responseJSON[i], i.toString());
+                document.getElementById("collectionsSelect").appendChild(option);
+            }
+        } */
+
+        function validateFields(str, errorElem)
+        {   
+            if(str.length > 0)
+            {
+                errorElem.hidden = true;
+            }
+            else
+            {
+                errorElem.hidden = false;
+                return false;
+            }
+            return true;
+        }
+
+        function hover()
+        {
+            if(this.classList.contains("btn-dark"))
+            {
+                this.classList.replace("btn-dark", "btn-light");
+            }
+        }
+
+        function notHover()
+        {
+            if(this.classList.contains("btn-light"))
+            {
+                this.classList.replace("btn-light", "btn-dark");
+            }
+        }
+
+        let connectButton = document.getElementById("connectButton");
+        connectButton.addEventListener("mouseover", hover);
+        connectButton.addEventListener("mouseout", notHover);
+        connectButton.addEventListener("click", getCollectionInfo);
+
+        let enterButton = document.getElementById("enterButton");
+        enterButton.addEventListener("mouseover", hover);
+        enterButton.addEventListener("mouseout", notHover);
+    </script>
+    </body>
+</html>
